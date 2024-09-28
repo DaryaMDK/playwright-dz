@@ -1,41 +1,49 @@
-import { test, expect } from '@playwright/test';
-
-const baseUrl = 'https://demowebshop.tricentis.com';
+const { test, expect } = require('@playwright/test');
+const { MainPage } = require('../pages/MainPage');
+const { ProductPage } = require('../pages/ProductPage');
+const { RegisterPage } = require('../pages/RegisterPage');
+const { LoginPage } = require('../pages/LoginPage');
 
 test('search one product', async ({ page }) => {
-  await page.goto(baseUrl);
-  await page.locator('#small-searchterms').click();
-  await page.locator('#small-searchterms').fill('laptop');
-  await page.getByRole('button', { name: 'Search' }).click();
-  const searchResults = await page.locator('.product-title').first();
-  await expect(searchResults).toContainText('14.1-inch Laptop');
+  const mainPage = new MainPage(page);
+  const productPage = new ProductPage(page);
+  await mainPage.goto();
+  await mainPage.searchForProduct('laptop');
+  const firstProductText = await productPage.getFirstProductText();
+  expect(firstProductText).toContain('14.1-inch Laptop');
 });
 
 test('send vote', async ({ page }) => {
-  await page.goto(baseUrl);
-  await page.locator('#pollanswers-2').click();
-  await page.locator('#vote-poll-1').click();
-  await expect(page.locator('.poll-vote-error')).toHaveText('Only registered users can vote.')
+  const mainPage = new MainPage(page);
+  await mainPage.goto();
+  await mainPage.voteInPoll();
+  await expect(page.locator(mainPage.pollVoteError)).toHaveText('Only registered users can vote.');
 });
 
 test('send newsletter', async ({ page }) => {
+  const mainPage = new MainPage(page);
   const sendText = 'Thank you for signing up! A verification email has been sent. We appreciate your interest.';
-  await page.goto(baseUrl);
-  await page.locator('#newsletter-email').fill('test@mail.ru');
-  await page.locator('#newsletter-subscribe-button').click();
-  await expect(page.locator('#newsletter-result-block')).toContainText(sendText)
+  await mainPage.goto();
+  await mainPage.subscribeToNewsletter('test@mail.ru');
+  await expect(page.locator(mainPage.newsletterResult)).toContainText(sendText);
 });
 
 test('open register page', async ({ page }) => {
-  await page.goto(baseUrl);
+  const mainPage = new MainPage(page);
+  const registerPage = new RegisterPage(page);
+  await mainPage.goto();
   await page.locator('a[href="/register"]').click();
-  await expect(page).toHaveURL(baseUrl + '/register');
-  await expect(page.locator('#register-button')).toBeVisible();
+  await expect(page).toHaveURL(mainPage.baseUrl + '/register');
+  const isRegisterButtonVisible = await registerPage.isRegisterButtonVisible();
+  expect(isRegisterButtonVisible).toBe(true);
 });
 
 test('navigate to login page', async ({ page }) => {
-  await page.goto(baseUrl);
+  const mainPage = new MainPage(page);
+  const loginPage = new LoginPage(page);
+  await mainPage.goto();
   await page.locator('a[href="/login"]').click();
-  await expect(page).toHaveURL(baseUrl + '/login');
-  await expect(page.locator('input[value="Log in"]')).toBeVisible();
+  await expect(page).toHaveURL(mainPage.baseUrl + '/login');
+  const isLoginButtonVisible = await loginPage.isLoginButtonVisible();
+  expect(isLoginButtonVisible).toBe(true);
 });
